@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Time Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="favicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body style="background-color: #b2b2b2; background-image: url(https://images.pexels.com/photos/1766838/pexels-photo-1766838.jpeg?cs=srgb&dl=pexels-baskin-creative-studios-1766838.jpg&fm=jpg);">
+    <div class="addHoursIsland">
+    <h1>Add Time</h1>
+      <input class="addTimeInput" type="number" placeholder="Hours" id="inputHours" required>
+      <input class="addTimeInput" type="number" placeholder="Minutes" id="inputMinutes" required>
+      <br>
+      <input class="addTimeInput" type="number" placeholder="Placements" id="inputPlacements" required>
+      <input class="addTimeInput" type="date" id="inputDate">
+      <br>
+      <textarea placeholder="Notes" id="inputNote"></textarea>
+      <br>
+      <button class="middle button" id="enterButton">Add Time</button>
+    </div>
+
+    <div class="showHoursIsland middle">
+      <div id="totalTime"></div>
+      <button id="clearTime">Clear Time</button>
+      <button id="logOut">Log Out</button>
+      <div id="time">Monthly Hours</div>
+    </div>
+    
+    <div class="floatingCenter" id="confirmBox">
+      <h1 style="font-size:45px;">Are you sure?</h1>
+      <button style="background-color:#4a4a4a;color:whitesmoke;padding:10px;display: inline;" class="button" id="cancelConfirmButton">Cancel</button>
+      <button style="background-color:#c83e3e;color:whitesmoke;padding:10px;display: inline;" data-inline="true" class="redHover button" id="confirmConfirmButton">Clear Hours</button>
+    </div>
+
+    <H3 style="background-color: #383838; color: white; opacity: 0.6;" class="bottom">socksinthewash@gmail.com</H3>
+    <script src="httpsPost.js"></script>
+  <script src="addHours.js"></script>
+  </body>
+</html>
