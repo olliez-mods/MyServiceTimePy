@@ -4,6 +4,7 @@ import jwt
 import jwt.utils
 import sqlFunctions as SQL_F
 from datetime import datetime
+import re
 
 app = Flask(__name__)
 
@@ -43,10 +44,18 @@ def serve_index():
 def serve_file(path):
     return send_from_directory('public', path)
 
+def filter_string(string) -> str:
+    """
+    Filter out scary charecters
+    """
+    if(string == None): return None
+    pattern = r'[^a-zA-Z0-9\s@#$%^&*()_+!\-=\[\]{};:\'",.|<>\/?]'
+    return re.sub(pattern, '', string)
+
 @app.route('/api/login', methods=['POST'])
 def api_login():
-    email = request.json.get('email', None)
-    pass_hash = request.json.get('pass_hash', None)
+    email = filter_string(request.json.get('email', None))
+    pass_hash = filter_string(request.json.get('pass_hash', None))
 
     if(not email): return jsonify({"error":"email not provided", "code":"834"}), 400
     if(not pass_hash): return jsonify({"error":"pass_hash not provided", "code":"291"}), 400
@@ -67,7 +76,7 @@ def api_login():
 
 @app.route('/api/validate_token', methods=['POST'])
 def api_validate_token():
-    token = request.headers.get('token', None)
+    token = filter_string(request.headers.get('token', None))
 
     if(not token): return jsonify({"error":"Token was not provided", "code":"139"}), 400
 
@@ -78,7 +87,7 @@ def api_validate_token():
     
 @app.route('/api/get_time', methods=['POST'])
 def api_get_time():
-    token = request.headers.get('token', None)
+    token = filter_string(request.headers.get('token', None))
 
     if(not token): return jsonify({"error":"Token was not provided", "code":"574"}), 400
 
@@ -110,7 +119,7 @@ def is_date_valid(date_string:str) -> bool:
 
 @app.route('/api/add_time', methods=['POST'])
 def api_add_time():
-    token = request.headers.get('token', None)
+    token = filter_string(request.headers.get('token', None))
     if(not token): return jsonify({"error":"Token was not provided", "code":"130"}), 400
     if(not is_token_valid(token)): return jsonify({"error":"Token is invalid", "code":"823"}), 400
 
@@ -122,10 +131,10 @@ def api_add_time():
     if(not time_slot): return jsonify({"error":"Time information was not provided", "code":"609"}), 400
 
     try:
-        minutes = int(time_slot.get('minutes', 0))
-        placements = int(time_slot.get('placements', 0))
-        date = time_slot.get('date', None)
-        note = str(time_slot.get('note', ''))
+        minutes = int(filter_string(time_slot.get('minutes', 0)))
+        placements = int(filter_string(time_slot.get('placements', 0)))
+        date = filter_string(time_slot.get('date', None))
+        note = str(filter_string(time_slot.get('note', '')))
     except (ValueError, TypeError) as e:
         print(e)
         return jsonify({"error":"Exception caught handling data sent", "exception":str(e), "code":"139"}), 400 
@@ -147,7 +156,8 @@ def api_add_time():
 
 @app.route('/api/remove_time', methods=['POST'])
 def api_remove_time():
-    token = request.headers.get('token', None)
+    token = filter_string(request.headers.get('token', None))
+
     if(not token): return jsonify({"error":"Token was not provided", "code":"184"}), 400
     if(not is_token_valid(token)): return jsonify({"error":"Token is invalid", "code":"099"}), 400
 
@@ -168,7 +178,8 @@ def api_remove_time():
 
 @app.route('/api/clear_time', methods=['POST'])
 def api_clear_time():
-    token = request.headers.get('token', None)
+    token = filter_string(request.headers.get('token', None))
+
     if(not token): return jsonify({"error":"Token was not provided", "code":"532"}), 400
     if(not is_token_valid(token)): return jsonify({"error":"Token is invalid", "code":"989"}), 400
 
