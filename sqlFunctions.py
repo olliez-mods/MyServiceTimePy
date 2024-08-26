@@ -35,6 +35,7 @@ def setup_db() -> None:
             minutes INTEGER,
             placements INTEGER,
             date DATE NOT NULL,
+            note TEXT,
             removed INTEGER DEFAULT 0, -- 0 for False, 1 for True
             FOREIGN KEY (user_id) REFERENCES users(id)
             )
