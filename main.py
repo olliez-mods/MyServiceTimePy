@@ -14,7 +14,7 @@ SECRET_KEY = 'my-secrete-key'
 tokens = []
 
 def generate_token(user_id:int) -> str:
-    exp_time = int(time.time()) + 1800
+    exp_time = int(time.time()) + 3600       # 1 hour
     token = jwt.encode({'user_id': user_id, 'exp': exp_time}, SECRET_KEY, algorithm='HS256')
     tokens.append(token)
     return token
