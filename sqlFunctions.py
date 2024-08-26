@@ -110,45 +110,44 @@ def update_user_hash(id:int, n_pass_hash:str):
     q = "UPDATE users SET pass_hash = ? WHERE id = ?"
     return db_write(q, (n_pass_hash, id))
 
-
-def add_time_to_user(user_id:int, minutes:int, placements:int, date:str):
+def add_time_to_user(user_id:int, minutes:int, placements:int, date:str, note:str):
     """
     Adds a time connected to a user:
     Note: date should be in 'YYYY-MM-DD' format
     """
-    q = 'INSERT INTO time (user_id, minutes, placements, date) VALUES (?, ?, ?, ?)'
-    return db_write(q, (user_id, minutes, placements, date))
+    q = 'INSERT INTO time (user_id, minutes, placements, date, note) VALUES (?, ?, ?, ?, ?)'
+    return db_write(q, (user_id, minutes, placements, date, note))
 
 def get_time(user_id:int):
     """
     Returns all active time of a user
-    Returns a list of rows, each row had 'minutes', 'placements', 'date'
+    Returns a list of rows, each row had 'minutes', 'placements', 'date', 'note'
     """
-    q = 'SELECT minutes, placements, date FROM time WHERE user_id = ? AND removed = 0'
+    q = 'SELECT minutes, placements, date, note FROM time WHERE user_id = ? AND removed = 0'
     return db_read(q, (user_id,))
 
 def get_all_time(user_id:int):
     """
     Returns all time (removed and active) of a user
-    Returns a list of rows, each row had 'minutes', 'placements', 'date'
+    Returns a list of rows, each row had 'minutes', 'placements', 'date', 'note'
     """
-    q = 'SELECT minutes, placements, date FROM time WHERE user_id = ?'
+    q = 'SELECT minutes, placements, date, note FROM time WHERE user_id = ?'
     return db_read(q, (user_id,))
 
 def get_time_by_date(user_id:int, date:str):
     """
     Returns all time on a given date
-    Returns a list of rows, each row had 'minutes', 'placements', 'date'
+    Returns a list of rows, each row had 'minutes', 'placements', 'date', 'note'
     """
-    q = 'SELECT minutes, placements, date FROM time WHERE user_id = ? AND date = ?'
+    q = 'SELECT minutes, placements, date, note FROM time WHERE user_id = ? AND date = ?'
     return db_read(q, (user_id, date))
 
 def get_removed_time(user_id:int):
     """
     Returns all removed time of a user
-    Returns a list of rows, each row had 'minutes', 'placements', 'date'
+    Returns a list of rows, each row had 'minutes', 'placements', 'date', 'note'
     """
-    q = 'SELECT minutes, placements, date FROM time WHERE user_id = ? AND removed = 1'
+    q = 'SELECT minutes, placements, date, note FROM time WHERE user_id = ? AND removed = 1'
     return db_read(q, (user_id,))
 
 def perm_delete_time_by_id(id:int):
