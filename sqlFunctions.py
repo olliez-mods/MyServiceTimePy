@@ -135,6 +135,14 @@ def get_all_time(user_id:int):
     q = 'SELECT minutes, placements, date FROM time WHERE user_id = ?'
     return db_read(q, (user_id,))
 
+def get_time_by_date(user_id:int, date:str):
+    """
+    Returns all time on a given date
+    Returns a list of rows, each row had 'minutes', 'placements', 'date'
+    """
+    q = 'SELECT minutes, placements, date FROM time WHERE user_id = ? AND date = ?'
+    return db_read(q, (user_id, date))
+
 def get_removed_time(user_id:int):
     """
     Returns all removed time of a user
