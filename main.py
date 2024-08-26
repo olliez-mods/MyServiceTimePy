@@ -3,6 +3,7 @@ import time
 import jwt
 import jwt.utils
 import sqlFunctions as SQL_F
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -52,35 +53,36 @@ def api_login():
 
     user = SQL_F.get_user_with_email(email)
 
-    if(not user): return jsonify({"error":"No user found with the email provided", "msg":"Email not found", "code":"186"}), 401
+    if(not user): return jsonify({"error":"No user found with the email provided", "msg":"Email not found", "code":"186"}), 400
 
     user_pass_hash = user['pass_hash']
+    user_id = user['id']
 
-    if(pass_hash != user_pass_hash): return jsonify({"error":"The hash provided does not match our systems","msg":"Password incorrect","code":"773"}), 401
+    if(pass_hash != user_pass_hash): return jsonify({"error":"The hash provided does not match our systems","msg":"Password incorrect","code":"773"}), 400
 
     # At this point, the email and password are correct
-    token = generate_token(email)
+    token = generate_token(user_id)
     print(f"User logged in '{email}'")
     return jsonify({"token":token}), 200
 
 @app.route('/api/validate_token', methods=['POST'])
 def api_validate_token():
-    token = request.json.get('token', None)
+    token = request.headers.get('token', None)
 
     if(not token): return jsonify({"error":"Token was not provided", "code":"139"}), 400
 
     # TODO: Different error message for never created token vs. expired
-    if(not is_token_valid(token)): return jsonify({"error":"Token is invalid", "code":"055"}), 401
+    if(not is_token_valid(token)): return jsonify({"error":"Token is invalid", "code":"055"}), 400
 
     return jsonify({"success":"Token is valid"}), 200
     
 @app.route('/api/get_time', methods=['POST'])
 def api_get_time():
-    token = request.json.get('token', None)
+    token = request.headers.get('token', None)
 
     if(not token): return jsonify({"error":"Token was not provided", "code":"574"}), 400
 
-    if(not is_token_valid(token)): return jsonify({"error":"Token is not valid", "code":"510"}), 401
+    if(not is_token_valid(token)): return jsonify({"error":"Token is not valid", "code":"510"}), 400
 
     user_id = get_id_from_token(token)
 
@@ -96,17 +98,83 @@ def api_get_time():
     
     return jsonify({"time":time_formatted}), 200
 
+def is_date_valid(date_string:str) -> bool:
+    """
+    returns tru if string is in format YYYY-MM-DD
+    """
+    try:
+        datetime.strptime(date_string, '%Y-%m-%d')
+        return True
+    except ValueError:
+        return False
+
 @app.route('/api/add_time', methods=['POST'])
 def api_add_time():
-    pass
+    token = request.headers.get('token', None)
+    if(not token): return jsonify({"error":"Token was not provided", "code":"130"}), 400
+    if(not is_token_valid(token)): return jsonify({"error":"Token is invalid", "code":"823"}), 400
+
+    # TODO validate user_id
+    user_id = get_id_from_token(token)
+
+    time_slot:dict = request.json.get('time', None)
+
+    if(not time_slot): return jsonify({"error":"Time information was not provided", "code":"609"}), 400
+
+    try:
+        minutes = int(time_slot.get('minutes', 0))
+        placements = int(time_slot.get('placements', 0))
+        date = time_slot.get('date', None)
+        note = str(time_slot.get('note', ''))
+    except (ValueError, TypeError) as e:
+        print(e)
+        return jsonify({"error":"Exception caught handling data sent", "exception":str(e), "code":"139"}), 400 
+    
+    # Confirm date is provided and is in correct format
+    if(not date): return jsonify({"error":"Date was not provided in time object", "code":"992"}), 400
+    date = str(date)
+    if(not is_date_valid(date)): return jsonify({"error":"Date must be provided in format YYYY-MM-DD", "code":"435"}), 400
+
+    # Make sure there are no other records for today
+    existing_time_on_date = SQL_F.get_time_by_date(user_id, date)
+    if(existing_time_on_date != None): return jsonify({"error":"Given date already has a time record", "code":"561"}), 400
+
+    # All data we have is valid, token is valid, date is empty... time to add it to our database
+    result = SQL_F.add_time_to_user(user_id, minutes, placements, date, note)
+
+    # TODO confirm that it was really added
+    return jsonify({"success":"Time was inserted into our database"}), 200
 
 @app.route('/api/remove_time', methods=['POST'])
 def api_remove_time():
-    pass
+    token = request.headers.get('token', None)
+    if(not token): return jsonify({"error":"Token was not provided", "code":"184"}), 400
+    if(not is_token_valid(token)): return jsonify({"error":"Token is invalid", "code":"099"}), 400
+
+    user_id = get_id_from_token(token)
+
+    date = request.json.get('date', None)
+    # Confirm date is provided and is in correct format
+    if(not date): return jsonify({"error":"Date was not provided", "code":"543"}), 400
+    date = str(date)
+    if(not is_date_valid(date)): return jsonify({"error":"Date must be provided in format YYYY-MM-DD", "code":"712"}), 400
+
+    current_times = SQL_F.get_time_by_date(user_id, date)
+
+    if(current_times == None): return jsonify({"error":"No time is recorded on the given date", "code":"431"}), 400
+
+    result = SQL_F.remove_time_by_date(user_id, date)
+    return jsonify({"success":"Removed all records for the givin date"}), 200
 
 @app.route('/api/clear_time', methods=['POST'])
 def api_clear_time():
-    pass
+    token = request.headers.get('token', None)
+    if(not token): return jsonify({"error":"Token was not provided", "code":"532"}), 400
+    if(not is_token_valid(token)): return jsonify({"error":"Token is invalid", "code":"989"}), 400
+
+    user_id = get_id_from_token(token)
+    SQL_F.remove_all_time(user_id)
+    return jsonify({"success":"Cleared all time"}), 200
 
 if __name__ == "__main__":
     SQL_F.set_db("myservicetime.db")
