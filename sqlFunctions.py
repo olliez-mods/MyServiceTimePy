@@ -74,7 +74,8 @@ def create_user(email:str, pass_hash:str):
 
 def get_user_with_email(email:str):
     """
-    Returns the ID of a user given their email
+    Returns the user given their email
+    'id', 'email', 'pass_hash'
     """
     q = 'SELECT id, email, pass_hash FROM users WHERE email = ? LIMIT 1'
     r = db_read(q, (email,))
@@ -82,7 +83,7 @@ def get_user_with_email(email:str):
 
 def get_user_with_id(id:int):
     """
-    Returns a dict of a user:
+    Returns a user given its id:
     id, email, pass_hash
     """
     q = 'SELECT id, email, pass_hash FROM users WHERE id = ? LIMIT 1'
