@@ -52,6 +52,23 @@ def filter_string(string) -> str:
     pattern = r'[^a-zA-Z0-9\s@#$%^&*()_+!\-=\[\]{};:\'",.|<>\/?]'
     return re.sub(pattern, '', string)
 
+@app.route('/api/create_account', methods=['POST'])
+def api_create_account():
+    email = filter_string(request.json.get('email', None))
+    pass_hash = filter_string(request.json.get('pass_hash', None))
+
+    if(not email): return jsonify({"error":"email not provided", "code":"771"}), 400
+    if(not pass_hash): return jsonify({"error":"pass_hash not provided", "code":"989"}), 400
+
+    existing_account = SQL_F.get_user_with_email(email)
+
+    if(existing_account != None): return jsonify({"error":"An existing account exists with that email", "msg":"Email taken", "code":"989"}), 400
+    if(len(email) <= 4): return jsonify({"error":"Email is too short, must be at least length 5", "msg":"Email too short", "code":"166"}), 400
+    if(len(pass_hash) <= 5): return jsonify({"error":"Password hash is too short. It should NEVER be shorter then 6 chars","code":"653"}), 400
+
+    SQL_F.create_user(email, pass_hash)
+    return jsonify({"success":"account was created successfully"}), 200
+
 @app.route('/api/login', methods=['POST'])
 def api_login():
     email = filter_string(request.json.get('email', None))
