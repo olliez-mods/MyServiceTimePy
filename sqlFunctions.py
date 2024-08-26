@@ -171,9 +171,23 @@ def perm_delete_user_time_by_date(user_id:int, date:str):
     q = "DELETE FROM time WHERE user_id = ? AND date = ?"
     return db_write(q, (user_id, date))
 
-def remove_user_time_by_date(user_id:int, date:str):
+def remove_time_by_date(user_id:int, date:str):
     """
     Removes all time logs of a user for a specific day (must be formatted YYYY-MM-DD)
     """
     q = "UPDATE time SET removed = 1 WHERE user_id = ? AND date = ?"
     return db_write(q, (user_id, date))
+
+def remove_all_time(user_id:int):
+    """
+    Removes all time by a user
+    """
+    q = "UPDATE time SET removed = 1 WHERE user_id = ?"
+    return db_write(q, (user_id,))
+
+def perm_delete_all_time(user_id:int):
+    """
+    PERMENENTLY removes all time of a user
+    """
+    q = "DELETE FROM time WHERE user_id = ?"
+    return db_write(q, (user_id,))
