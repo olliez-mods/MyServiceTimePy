@@ -28,17 +28,28 @@ def serve_index():
 def serve_file(path):
     return send_from_directory('public', path)
 
-@app.route('/login', methods=['POST'])
+@app.route('/api/login', methods=['POST'])
 def login():
     email = request.json.get('email', None)
     pass_hash = request.json.get('pass_hash', None)
 
-    if(not email): return jsonify("error":"email not provided"), 401
-    if(not pass_hash): return jsonify("error":"pass_hash not provided"), 401
+    if(not email): return jsonify({"error":"email not provided"}), 401
+    if(not pass_hash): return jsonify({"error":"pass_hash not provided"}), 401
 
     user = SQL_F.get_user_with_email(email)
 
-    
+    if(not user): return jsonify({"error":"No user found with the email provided", "msg":"Email not found"}), 401
+
+    user_pass_hash = user['pass_hash']
+
+    if(pass_hash != user_pass_hash): return jsonify({"error":"The hash provided does not match our systems","msg":"Password incorrect"}), 401
+
+    # At this point, the email and password are correct
+    token = generate_token(email)
+
+    print(f"User logged in '{email}'")
+
+    return jsonify({"token":token}), 201
 
 if __name__ == "__main__":
     app.run(debug=True)
