@@ -47,16 +47,16 @@ def api_login():
     email = request.json.get('email', None)
     pass_hash = request.json.get('pass_hash', None)
 
-    if(not email): return jsonify({"error":"email not provided"}), 400
-    if(not pass_hash): return jsonify({"error":"pass_hash not provided"}), 400
+    if(not email): return jsonify({"error":"email not provided", "code":"834"}), 400
+    if(not pass_hash): return jsonify({"error":"pass_hash not provided", "code":"291"}), 400
 
     user = SQL_F.get_user_with_email(email)
 
-    if(not user): return jsonify({"error":"No user found with the email provided", "msg":"Email not found"}), 401
+    if(not user): return jsonify({"error":"No user found with the email provided", "msg":"Email not found", "code":"186"}), 401
 
     user_pass_hash = user['pass_hash']
 
-    if(pass_hash != user_pass_hash): return jsonify({"error":"The hash provided does not match our systems","msg":"Password incorrect"}), 401
+    if(pass_hash != user_pass_hash): return jsonify({"error":"The hash provided does not match our systems","msg":"Password incorrect","code":"773"}), 401
 
     # At this point, the email and password are correct
     token = generate_token(email)
@@ -67,10 +67,10 @@ def api_login():
 def api_validate_token():
     token = request.json.get('token', None)
 
-    if(not token): return jsonify({"error":"Token was not provided"}), 400
+    if(not token): return jsonify({"error":"Token was not provided", "code":"139"}), 400
 
     # TODO: Different error message for never created token vs. expired
-    if(not is_token_valid(token)): return jsonify({"error":"Token is invalid"}), 401
+    if(not is_token_valid(token)): return jsonify({"error":"Token is invalid", "code":"055"}), 401
 
     return jsonify({"success":"Token is valid"}), 200
     
@@ -78,9 +78,9 @@ def api_validate_token():
 def api_get_time():
     token = request.json.get('token', None)
 
-    if(not token): return jsonify({"error":"Token was not provided"}), 400
+    if(not token): return jsonify({"error":"Token was not provided", "code":"574"}), 400
 
-    if(not is_token_valid(token)): return jsonify({"error":"Token is not valid"}), 401
+    if(not is_token_valid(token)): return jsonify({"error":"Token is not valid", "code":"510"}), 401
 
     user_id = get_id_from_token(token)
 
