@@ -48,7 +48,6 @@ def filter_string(string) -> str:
     """
     Filter out scary charecters
     """
-    print(string)
     try:
         if(string == None): return None
         pattern = r'[^a-zA-Z0-9\s@#$%^&*()_+!\-=\[\]{};:\'",.|<>\/?]'
@@ -119,14 +118,16 @@ def api_get_time():
 
     user_time_rows = SQL_F.get_time(user_id)
     time_formatted = []
-    for r in user_time_rows:
-        row = dict(r)
-        time_formatted.append({
-            "minutes":row.get('minutes', 0),
-            "placements":row.get('placements',0),
-            "date":row.get('date','0000-00-00'),
-            "note":row.get('note','')
-        })
+
+    if(user_time_rows):
+        for r in user_time_rows:
+            row = dict(r)
+            time_formatted.append({
+                "minutes":row.get('minutes', 0),
+                "placements":row.get('placements',0),
+                "date":row.get('date','0000-00-00'),
+                "note":row.get('note','')
+            })
     
     return jsonify({"time":time_formatted}), 200
 
