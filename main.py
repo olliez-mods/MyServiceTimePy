@@ -48,9 +48,14 @@ def filter_string(string) -> str:
     """
     Filter out scary charecters
     """
-    if(string == None): return None
-    pattern = r'[^a-zA-Z0-9\s@#$%^&*()_+!\-=\[\]{};:\'",.|<>\/?]'
-    return re.sub(pattern, '', string)
+    print(string)
+    try:
+        if(string == None): return None
+        pattern = r'[^a-zA-Z0-9\s@#$%^&*()_+!\-=\[\]{};:\'",.|<>\/?]'
+        return re.sub(pattern, '', string)
+    except Exception as e:
+        print(e)
+        return None
 
 @app.route('/api/create_account', methods=['POST'])
 def api_create_account():
@@ -115,11 +120,12 @@ def api_get_time():
     user_time_rows = SQL_F.get_time(user_id)
     time_formatted = []
     for r in user_time_rows:
+        row = dict(r)
         time_formatted.append({
-            "minutes":r.get('minutes', 0),
-            "placements":r.get('placements',0),
-            "date":r.get('date','0000-00-00'),
-            "note":r.get('note','')
+            "minutes":row.get('minutes', 0),
+            "placements":row.get('placements',0),
+            "date":row.get('date','0000-00-00'),
+            "note":row.get('note','')
         })
     
     return jsonify({"time":time_formatted}), 200
