@@ -155,8 +155,8 @@ def api_add_time():
     if(not time_slot): return jsonify({"error":"Time information was not provided", "code":"609"}), 400
 
     try:
-        minutes = int(filter_string(time_slot.get('minutes', 0)))
-        placements = int(filter_string(time_slot.get('placements', 0)))
+        minutes = int(time_slot.get('minutes', 0))
+        placements = int(time_slot.get('placements', 0))
         date = filter_string(time_slot.get('date', None))
         note = str(filter_string(time_slot.get('note', '')))
     except (ValueError, TypeError) as e:
