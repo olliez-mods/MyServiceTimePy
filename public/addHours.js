@@ -41,6 +41,12 @@ function removeDay(date_str){
     });
 }
 
+function minutes_to_hour_minute(minutes){
+    let h = Math.floor(minutes / 60);
+    let m = minutes % 60;
+    return([h,m]);
+}
+
 function getHours(){
     sendPOST({}, "get_time", token).then(({status, ok, data}) => {
         if(!ok){
@@ -55,7 +61,7 @@ function getHours(){
         let time = data['time']
 
         // Sort by date first, so we add them in order
-        const reverse = false
+        const reverse = true
         time.sort((a, b) => {
             const dateA = new Date(a.date);
             const dateB = new Date(b.date);
@@ -66,14 +72,18 @@ function getHours(){
             }
         });
 
-        let totalHours = 0;
         let totalMinutes = 0;
         let totalPlacements = 0;
+
+        let monthlyMinutes = 0;
+        let monthlyPlacements = 0;
     
         const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         const monthsOfYear = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         
         let HTML = "";
+
+        let lastMonth = '';
 
         time.forEach((time_record, index) => {
             let m_raw = time_record['minutes']
@@ -83,12 +93,15 @@ function getHours(){
 
             let d = new Date(d_raw)
 
-            let h = Math.floor(m_raw / 60);
-            let m = m_raw % 60;
-
-            totalHours += h
-            totalMinutes += m
+            totalMinutes += m_raw
             totalPlacements += p
+
+            monthlyMinutes += m_raw;
+            monthlyPlacements += p;
+
+            let [h, m] = minutes_to_hour_minute(m_raw)
+
+            let currentMonth = d.toLocaleString('default', { month: 'long', year: 'numeric' });
 
             dateStr = daysOfWeek[d.getUTCDay()] + ", " + d.getUTCDate(); 
             let fileDis = 
@@ -99,20 +112,30 @@ function getHours(){
                     <H3 class="dateInfo">Time: ${h}:${m}</H3>
                     <H3 class="dateInfo">Placements: ${p}</H3>
                     <H4 class="dateInfo" style="word-wrap: break-word;">${n}<H4>
-          </div>`;
-            HTML = fileDis + HTML;
+            </div>`;
+
+            if(currentMonth !== lastMonth){
+                // Display monthly totals for the previous month
+                let [monthHours, monthMinutes] = minutes_to_hour_minute(monthlyMinutes);
+
+                HTML += `<br></br>
+                         <h2 style="margin-bottom: 0;">${currentMonth}</h2>
+                         <h3 style="margin-top: 0; margin-bottom: 10px;">Time: ${monthHours}:${monthMinutes}</h3>`;
+
+                monthlyMinutes = 0
+                monthlyPlacements = 0
+                lastMonth = currentMonth;
+            }
+            HTML += fileDis;
         });
 
-        while(totalMinutes >= 60){
-            totalMinutes -= 60;
-            totalHours++;
-        }
+        let [t_hour, t_min] = minutes_to_hour_minute(totalMinutes);
     
         document.getElementById("time").innerHTML = HTML;
         document.getElementById("totalTime").innerHTML = 
         `
         <div>
-        <h1>Time: ${totalHours}:${totalMinutes}<br>Placements: ${totalPlacements}</h1>
+        <h1>Time: ${t_hour}:${t_min}<br>Placements: ${totalPlacements}</h1>
         </div>
         `;
 
