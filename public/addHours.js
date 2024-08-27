@@ -4,7 +4,7 @@ document.getElementById("inputDate").valueAsDate = new Date();
 
 function setZeroIfInvalid(obj){
     if(!obj.checkValidity()){
-        obj.value = 0
+        obj.value = 0;
     }
 }
 
@@ -26,7 +26,7 @@ function CheckToken(){
 }
 
 function removeDay(date_str){
-    console.log(date_str)
+    console.log(date_str);
     data_out = {'date':date_str};
     sendPOST(data_out, "remove_time", token).then(({status, ok, data}) => {
         if(!ok){
@@ -58,10 +58,10 @@ function getHours(){
             return;
         }
 
-        let time = data['time']
+        let time = data['time'];
 
         // Sort by date first, so we add them in order
-        const reverse = true
+        const reverse = true;
         time.sort((a, b) => {
             const dateA = new Date(a.date);
             const dateB = new Date(b.date);
@@ -86,20 +86,20 @@ function getHours(){
         let lastMonth = '';
 
         time.forEach((time_record, index) => {
-            let m_raw = time_record['minutes']
-            let p = time_record['placements']
-            let d_raw = time_record['date']
-            let n = time_record['note']
+            let m_raw = time_record['minutes'];
+            let p = time_record['placements'];
+            let d_raw = time_record['date'];
+            let n = time_record['note'];
 
-            let d = new Date(d_raw)
+            let d = new Date(d_raw);
 
-            totalMinutes += m_raw
-            totalPlacements += p
+            totalMinutes += m_raw;
+            totalPlacements += p;
 
             monthlyMinutes += m_raw;
             monthlyPlacements += p;
 
-            let [h, m] = minutes_to_hour_minute(m_raw)
+            let [h, m] = minutes_to_hour_minute(m_raw);
 
             let currentMonth = d.toLocaleString('default', { month: 'long', year: 'numeric' });
 
@@ -122,8 +122,8 @@ function getHours(){
                          <h2 style="margin-bottom: 0;">${currentMonth}</h2>
                          <h3 style="margin-top: 0; margin-bottom: 10px;">Time: ${monthHours}:${monthMinutes}</h3>`;
 
-                monthlyMinutes = 0
-                monthlyPlacements = 0
+                monthlyMinutes = 0;
+                monthlyPlacements = 0;
                 lastMonth = currentMonth;
             }
             HTML += fileDis;
@@ -148,7 +148,7 @@ function addHours(){
     setZeroIfInvalid(document.getElementById("inputPlacements"));
 
     full_minutes = parseInt(document.getElementById("inputHours").value)*60 + parseInt(document.getElementById("inputMinutes").value);
-    console.log(full_minutes)
+    console.log(full_minutes);
     data_out = {
         'time':{
             'minutes':full_minutes,
@@ -162,7 +162,7 @@ function addHours(){
             if(data["code"] == "823"){
                 clearTokenAndReturn();
             }else if(data["code"] == "561"){
-                alert("Only one record per date is allowed")
+                alert("Only one record per date is allowed");
             }else{
                 alert(JSON.stringify(data));
             }
@@ -203,7 +203,7 @@ if(token){
 
     let logOutButton = document.getElementById("logOut");
     logOutButton.addEventListener("click", function(){
-        console.log("exitng")
+        console.log("exitng");
         clearTokenAndReturn();
     });
     

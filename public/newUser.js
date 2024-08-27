@@ -1,8 +1,8 @@
 
 imageURL = localStorage.getItem("lastImage");
-document.body.style.backgroundImage = `URL(${imageURL})`
+document.body.style.backgroundImage = `URL(${imageURL})`;
 
-let account_created_freeze = false
+let account_created_freeze = false;
 
 let hrefLink = document.getElementById("hrefLink");
 hrefLink.addEventListener("click", function(){
@@ -56,7 +56,7 @@ button.addEventListener("click", async function(){
         }else{
             set_info_text("Error creating account", "#f5020b");
             alert(JSON.stringify(data));
-            console.log("Error creating account, got response form server:\n", data)
+            console.log("Error creating account, got response form server:\n", data);
         }
     });
 });

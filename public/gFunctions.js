@@ -17,7 +17,7 @@ async function sendPOST(data, event, token=null){
     return {status:response.status, ok:response.ok, data:j_data}
 }
 
-const PASSWORD_SALT = "myservicetime"
+const PASSWORD_SALT = "myservicetime";
 
 async function hashPassword(password, salt=PASSWORD_SALT) {
     const encoder = new TextEncoder();

@@ -1,5 +1,5 @@
 function set_info_text(text){
-    document.getElementById("regInfo").innerText = text
+    document.getElementById("regInfo").innerText = text;
 }
 
 let token = localStorage.getItem("token");
