@@ -1,31 +1,46 @@
-
+function set_info_text(text){
+    document.getElementById("regInfo").innerText = text
+}
 
 let token = localStorage.getItem("token");
+
 if(token){
-    sendPOST({
-        event:"checkToken",
-        token:token
-    }).then(respose => {
-        if(respose.status == "success"){
+    sendPOST({}, "validate_token", token).then(({status, ok, data}) => {
+        if(ok){
             window.location.replace("addHours.html");
+        }else{
+            localStorage.removeItem("token");
         }
     });
 }
 
 let button = document.getElementById("enterButton");
-button.addEventListener("click", function(){
+button.addEventListener("click", async function(){
+    email = document.getElementById("inputEmail").value;
+    password = document.getElementById("inputPass").value;
 
-    sendPOST({
-        event:"login",
-        name:document.getElementById("inputName").value,
-        pass:document.getElementById("inputPass").value
-    }).then(response => {
-        console.log("Got something back,", response);
-        if(response.status == "success"){
-            localStorage.setItem("token", response.token);
+    if (!str_has_content(email) || !str_has_content(password)) {
+        set_info_text("Please fill in all fields", "#f5020b");
+        return;
+    }
+
+    pass_hash = await hashPassword(password);
+
+    data_out = {'email':email, 'pass_hash':pass_hash};
+    sendPOST(data_out, "login").then(({status, ok, data}) => {
+        if(ok){
+            localStorage.setItem("token", data["token"]);
+            set_info_text("");
             window.location.replace("addHours.html");
-        }else if(response.status == "failed"){
-            document.getElementById("regInfo").innerText = "Error: " + response.reason;
+            return;
+        }
+
+        if('msg' in data){
+            set_info_text(data['msg']);
+        }else{
+            set_info_text("Error logging in");
+            alert(JSON.stringify(data));
+            console.log("Error logging in\n", status, data);
         }
     });
 });

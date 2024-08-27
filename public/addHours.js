@@ -9,86 +9,113 @@ function setZeroIfInvalid(obj){
 }
 
 function clearTokenAndReturn(){
-    localStorage.setItem("token", "");
+    localStorage.removeItem("token");
     window.location.replace("index.html");
 }
 
-function removeDay(index){
-    sendPOST({
-        event:"removeDay",
-        index:index,
-        token:token
-    }).then(response => {
-        if(response.status == "success"){
-            getHours();
-        }else if(response.status == "failed" && response.reason == "invalidToken"){
+function CheckToken(){
+    sendPOST({}, "validate_token", token).then(({status, ok, data}) => {
+        if(!ok){
+            if(data["code"] = "055"){
             clearTokenAndReturn();
+            }else{
+                alert(JSON.stringify(data));
+            }
         }
     });
 }
 
-function getHours(){
-    sendPOST({
-        event:"getHours",
-        token:token
-    }).then(respose => {
-            if(respose.status == "success"){
-                let time = respose.time;
-
-                let totalHours = 0;
-                let totalMinutes = 0;
-                let totalPlacements = 0;
-            
-                let daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-                
-                let HTML = "";
-                time.forEach((day, index) => {
-                    totalHours += day["hours"];
-                    totalMinutes += day["minutes"];
-                    totalPlacements += day["placements"];
-                    let date = new Date(day["date"]);
-                    let dateStr = daysOfWeek[date.getUTCDay()] + ", " + date.getUTCDate();
-                    let fileDis = 
-                    `
-                    <div class="dateBox">
-                    <img src="close.png" onClick="removeDay(${index})" class="xButtonImg">
-                            <H2 style="margin-top:0px; text-align: center;">${dateStr}</H2>
-                            <H3 class="dateInfo">Time: ${day["hours"]}:${day["minutes"]}</H3>
-                            <H3 class="dateInfo">Placements: ${day["placements"]}</H3>
-                            <H4 class="dateInfo" style="word-wrap: break-word;">${day["notes"]}<H4>
-                            
-                  </div>`;
-                    HTML = fileDis + HTML;
-                });
-            
-                while(totalMinutes >= 60){
-                    totalMinutes -= 60;
-                    totalHours++;
-                }
-            
-                document.getElementById("time").innerHTML = HTML;
-                document.getElementById("totalTime").innerHTML = 
-                `
-                <div>
-                <h1>Time: ${totalHours}:${totalMinutes}<br>Placements: ${totalPlacements}</h1>
-                </div>
-                `;
-            }else if(response.status == "failed"){
-                if(response.reason == "invalid token"){
-                    clearTokenAndReturn();
-                }
+function removeDay(date_str){
+    console.log(date_str)
+    data_out = {'date':date_str};
+    sendPOST(data_out, "remove_time", token).then(({status, ok, data}) => {
+        if(!ok){
+            if(data["code"] == "099"){
+                clearTokenAndReturn();
+            }else{
+                alert(JSON.stringify(data));
             }
+            return;
+        }
+        setTimeout(getHours(), 500);
     });
 }
 
-function CheckToken(){
-    sendPOST({
-        event:"checkToken",
-        token:token
-    }).then(respose => {
-            if(respose.status == "failed"){
+function getHours(){
+    sendPOST({}, "get_time", token).then(({status, ok, data}) => {
+        if(!ok){
+            if(data['code'] == "510"){
                 clearTokenAndReturn();
+            }else{
+                alert(JSON.stringify(data));
             }
+            return;
+        }
+
+        let time = data['time']
+
+        // Sort by date first, so we add them in order
+        const reverse = false
+        time.sort((a, b) => {
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            if(reverse){
+                return dateB - dateA;
+            }else{
+            return dateA - dateB;
+            }
+        });
+
+        let totalHours = 0;
+        let totalMinutes = 0;
+        let totalPlacements = 0;
+    
+        const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const monthsOfYear = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        
+        let HTML = "";
+
+        time.forEach((time_record, index) => {
+            let m_raw = time_record['minutes']
+            let p = time_record['placements']
+            let d_raw = time_record['date']
+            let n = time_record['note']
+
+            let d = new Date(d_raw)
+
+            let h = Math.floor(m_raw / 60);
+            let m = m_raw % 60;
+
+            totalHours += h
+            totalMinutes += m
+            totalPlacements += p
+
+            dateStr = daysOfWeek[d.getUTCDay()] + ", " + d.getUTCDate(); 
+            let fileDis = 
+            `
+            <div class="dateBox">
+            <img src="close.png" onClick="removeDay('${d_raw}')" class="xButtonImg">
+                    <H2 style="margin-top:0px; text-align: center;">${dateStr}</H2>
+                    <H3 class="dateInfo">Time: ${h}:${m}</H3>
+                    <H3 class="dateInfo">Placements: ${p}</H3>
+                    <H4 class="dateInfo" style="word-wrap: break-word;">${n}<H4>
+          </div>`;
+            HTML = fileDis + HTML;
+        });
+
+        while(totalMinutes >= 60){
+            totalMinutes -= 60;
+            totalHours++;
+        }
+    
+        document.getElementById("time").innerHTML = HTML;
+        document.getElementById("totalTime").innerHTML = 
+        `
+        <div>
+        <h1>Time: ${totalHours}:${totalMinutes}<br>Placements: ${totalPlacements}</h1>
+        </div>
+        `;
+
     });
 }
 
@@ -97,47 +124,50 @@ function addHours(){
     setZeroIfInvalid(document.getElementById("inputMinutes"));
     setZeroIfInvalid(document.getElementById("inputPlacements"));
 
-    sendPOST({
-        event:"addHours",
-        token:token,
-        "hours":parseInt(document.getElementById("inputHours").value),
-        "minutes":parseInt(document.getElementById("inputMinutes").value),
-        "date":document.getElementById("inputDate").value,
-        "placements":parseInt(document.getElementById("inputPlacements").value),
-        "notes": document.getElementById("inputNote").value,
-    }).then(response => {
-        if(response.status != "success"){
-            if(response.reason == "invalid token"){
+    full_minutes = parseInt(document.getElementById("inputHours").value)*60 + parseInt(document.getElementById("inputMinutes").value);
+    console.log(full_minutes)
+    data_out = {
+        'time':{
+            'minutes':full_minutes,
+            'placements':parseInt(document.getElementById("inputPlacements").value),
+            'note':document.getElementById("inputNote").value,
+            'date':document.getElementById("inputDate").value
+        }
+    };
+    sendPOST(data_out, "add_time", token).then(({status, ok, data}) => {
+        if(!ok){
+            if(data["code"] == "823"){
                 clearTokenAndReturn();
+            }else{
+                alert(JSON.stringify(data));
             }
-        }else{
+            return;
+        }
         document.getElementById("inputHours").value = "";
         document.getElementById("inputMinutes").value = "";
         document.getElementById("inputDate").valueAsDate = new Date();
         document.getElementById("inputPlacements").value = "";
         document.getElementById("inputNote").value = "";
-        }
-    });
 
-    setTimeout(getHours(), 1000);
+        setTimeout(getHours(), 500);
+    });
 }
 
 function clearHous(){
-    sendPOST({
-        event:"clearHours",
-        token:token
-    }).then(response => {
-        if(response.status == "success"){
-            getHours();
-        }if(response.status == "failed" && response.reason == "invalid token"){
-            clearTokenAndReturn();
+    sendPOST({}, "clear_time", token).then(({status, ok, data}) => {
+        if(!ok){
+            if(data['code'] == "989"){
+                clearTokenAndReturn()
+            }else{
+                alert(JSON.stringify(data));
+            }
+            return;
         }
+        getHours();
     });
-getHours();
 }
 
 if(token){
-
     CheckToken();
     getHours();
 
@@ -148,10 +178,10 @@ if(token){
 
     let logOutButton = document.getElementById("logOut");
     logOutButton.addEventListener("click", function(){
+        console.log("exitng")
         clearTokenAndReturn();
     });
     
-
     let confirmBox = document.getElementById("confirmBox");
     let clearButton = document.getElementById("clearTime");
     clearButton.addEventListener("click", function(){
@@ -168,5 +198,4 @@ if(token){
         clearHous();
         confirmBox.style.display = "none";
     });
-
 }
