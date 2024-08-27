@@ -8,11 +8,18 @@ token_exp_time=3600
 db_path=./myservicetime.db
 
 # Do we want to run as a secure (https) Server
-run_as_sucure=false
+run_as_secure=false
 
-# SSL files
+# SSL files (Only applicable if 'run_as_secure' is true)
 cert_file_path=./cert.pem
 key_file_path=./key.pem
 
 # Server port (http is 80, https is 443)
-port=443
+port=80
+
+# Redirects connecting clients to a different port and/or change prefix
+# Default: listen on 80 and redirects to port 443 (https://)
+use_redirection_server=false
+redirection_listen_port=80
+redirection_send_port=443
+redirect_prefix=https://

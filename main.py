@@ -7,16 +7,44 @@ import iniParser as INI
 from datetime import datetime
 import re
 
-# INI file ===========================
+# INI file =============================================================
 ini_file = INI.load_data_from_file("config.ini")
 s_key = ini_file.get("secrete_key", "myservicetime-SECRETE")
 token_exp_time = ini_file.get("token_exp_time", 3600)
 db_path = ini_file.get("db_path", "myservicetime.db")
 cert_path = ini_file.get("cert_file_path", "./cert.pem")
 key_path = ini_file.get("key_file_path", "./key.pem")
-port = ini_file.get("port", 80)
-# ====================================
+server_port = ini_file.get("port", 80)
+run_as_secure = ini_file.get("run_as_secure", False)
+use_redirection_server = ini_file.get("use_redirection_server", False)
+redirection_listen = ini_file.get("redirection_listen_port", 80)
+redirection_send = ini_file.get("redirection_send_port", 443)
+redirect_prefix = ini_file.get("redirect_prefix", "https://")
+# ======================================================================
 
+# Redirection server ===================================================
+if(use_redirection_server):
+    print("=============================\nStarting redirection server")
+    redirection_app = Flask(__name__)
+    import threading
+    from flask import redirect
+    @redirection_app.route('/', defaults={'path':''})
+    @redirection_app.route('/<path:path>')
+    def redirect_to_new_port(path):
+        # If the prefix is a standard and the port iven matches that, we don't need to add it
+        need_port = (redirect_prefix == "http://" and redirection_send != 80) or (redirect_prefix == "https://" and redirection_send != 443)
+        port_str = f":{redirection_send}" if need_port else ""
+        redirect_url = f"{redirect_prefix}{request.host.split(':')[0]}{port_str}/{path}"
+        return redirect(redirect_url, code=301)
+    def run_redirect_server():
+        redirection_app.run(host='0.0.0.0', port=redirection_listen)
+    # start redurect server in a seperate thread
+    redirect_app_thread = threading.Thread(target=run_redirect_server)
+    redirect_app_thread.daemon = True
+    redirect_app_thread.start()
+    print("=============================")
+    print("Starting Main server:")
+# ======================================================================
 
 app = Flask(__name__)
 
@@ -229,4 +257,7 @@ def api_clear_time():
 if __name__ == "__main__":
     SQL_F.set_db(db_path)
     SQL_F.setup_db()
-    app.run(debug=True)
+
+    # Don't provide ssl certificate if we don't want to
+    ssl_context = (cert_path, key_path) if run_as_secure else None
+    app.run(ssl_context=ssl_context, host='0.0.0.0', port=server_port)
