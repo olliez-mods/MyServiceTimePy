@@ -26,7 +26,6 @@ function CheckToken(){
 }
 
 function removeDay(date_str){
-    console.log(date_str);
     data_out = {'date':date_str};
     sendPOST(data_out, "remove_time", token).then(({status, ok, data}) => {
         if(!ok){
@@ -96,7 +95,9 @@ function getHours(){
             let d_raw = time_record['date'];
             let n = time_record['note'];
 
-            let d = new Date(d_raw);
+            // Needs to be split since Date() first converts to UTC time, we want to manualy put it in
+            let [c_year, c_month, c_day] = d_raw.split("-").map(Number);
+            let d = new Date(c_year, c_month-1, c_day);
 
             let currentMonth = d.toLocaleString('default', { month: 'long', year: 'numeric' });
 
@@ -131,7 +132,7 @@ function getHours(){
             </div>`;
 
             HTML = fileDis + HTML;
-            
+
             if(index === time.length-1){
                 HTML = get_month_html_str(currentMonth, monthlyMinutes) + HTML;
             }
