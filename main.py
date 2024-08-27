@@ -3,18 +3,30 @@ import time
 import jwt
 import jwt.utils
 import sqlFunctions as SQL_F
+import iniParser as INI
 from datetime import datetime
 import re
 
+# INI file ===========================
+ini_file = INI.load_data_from_file("config.ini")
+s_key = ini_file.get("secrete_key", "myservicetime-SECRETE")
+token_exp_time = ini_file.get("token_exp_time", 3600)
+db_path = ini_file.get("db_path", "myservicetime.db")
+cert_path = ini_file.get("cert_file_path", "./cert.pem")
+key_path = ini_file.get("key_file_path", "./key.pem")
+port = ini_file.get("port", 80)
+# ====================================
+
+
 app = Flask(__name__)
 
-SECRET_KEY = 'my-secrete-key'
+SECRET_KEY = s_key
 
 # Not used in the program
 tokens = []
 
 def generate_token(user_id:int) -> str:
-    exp_time = int(time.time()) + 3600       # 1 hour
+    exp_time = int(time.time()) + token_exp_time       # 1 hour
     token = jwt.encode({'user_id': user_id, 'exp': exp_time}, SECRET_KEY, algorithm='HS256')
     tokens.append(token)
     return token
@@ -215,6 +227,6 @@ def api_clear_time():
     return jsonify({"success":"Cleared all time"}), 200
 
 if __name__ == "__main__":
-    SQL_F.set_db("myservicetime.db")
+    SQL_F.set_db(db_path)
     SQL_F.setup_db()
     app.run(debug=True)

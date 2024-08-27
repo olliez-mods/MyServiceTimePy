@@ -1,0 +1,18 @@
+# Key used to create login tokens
+secrete_key="myservicetime-SECRETE"
+
+# Seconds a token is valid for (3600 = 1 hour)
+token_exp_time=3600
+
+# Database file path
+db_path=./myservicetime.db
+
+# Do we want to run as a secure (https) Server
+run_as_sucure=false
+
+# SSL files
+cert_file_path=./cert.pem
+key_file_path=./key.pem
+
+# Server port (http is 80, https is 443)
+port=443
