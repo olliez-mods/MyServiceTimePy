@@ -47,6 +47,11 @@ function minutes_to_hour_minute(minutes){
     return([h,m]);
 }
 
+function get_month_html_str(month_string, minutes){
+    let [h, m] = minutes_to_hour_minute(minutes);
+    return`<br></br><h2 style="margin-bottom: 0;">${month_string}</h2><h3 style="margin-top: 0; margin-bottom: 10px;">Time: ${h}:${m}</h3>`;
+}
+
 function getHours(){
     sendPOST({}, "get_time", token).then(({status, ok, data}) => {
         if(!ok){
@@ -61,14 +66,14 @@ function getHours(){
         let time = data['time'];
 
         // Sort by date first, so we add them in order
-        const reverse = true;
+        const reverse = false;
         time.sort((a, b) => {
             const dateA = new Date(a.date);
             const dateB = new Date(b.date);
             if(reverse){
                 return dateB - dateA;
             }else{
-            return dateA - dateB;
+                return dateA - dateB;
             }
         });
 
@@ -93,15 +98,26 @@ function getHours(){
 
             let d = new Date(d_raw);
 
+            let currentMonth = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+
             totalMinutes += m_raw;
             totalPlacements += p;
+
+            if(currentMonth !== lastMonth){
+                if(lastMonth !== ''){
+                    HTML = get_month_html_str(lastMonth, monthlyMinutes) + HTML
+                }
+                
+                monthlyMinutes = 0;
+                monthlyPlacements = 0;
+
+                lastMonth = currentMonth;
+            }
 
             monthlyMinutes += m_raw;
             monthlyPlacements += p;
 
             let [h, m] = minutes_to_hour_minute(m_raw);
-
-            let currentMonth = d.toLocaleString('default', { month: 'long', year: 'numeric' });
 
             dateStr = daysOfWeek[d.getUTCDay()] + ", " + d.getUTCDate(); 
             let fileDis = 
@@ -114,19 +130,11 @@ function getHours(){
                     <H4 class="dateInfo" style="word-wrap: break-word;">${n}<H4>
             </div>`;
 
-            if(currentMonth !== lastMonth){
-                // Display monthly totals for the previous month
-                let [monthHours, monthMinutes] = minutes_to_hour_minute(monthlyMinutes);
-
-                HTML += `<br></br>
-                         <h2 style="margin-bottom: 0;">${currentMonth}</h2>
-                         <h3 style="margin-top: 0; margin-bottom: 10px;">Time: ${monthHours}:${monthMinutes}</h3>`;
-
-                monthlyMinutes = 0;
-                monthlyPlacements = 0;
-                lastMonth = currentMonth;
+            HTML = fileDis + HTML;
+            
+            if(index === time.length-1){
+                HTML = get_month_html_str(currentMonth, monthlyMinutes) + HTML;
             }
-            HTML += fileDis;
         });
 
         let [t_hour, t_min] = minutes_to_hour_minute(totalMinutes);
@@ -138,7 +146,6 @@ function getHours(){
         <h1>Time: ${t_hour}:${t_min}<br>Placements: ${totalPlacements}</h1>
         </div>
         `;
-
     });
 }
 
@@ -148,7 +155,6 @@ function addHours(){
     setZeroIfInvalid(document.getElementById("inputPlacements"));
 
     full_minutes = parseInt(document.getElementById("inputHours").value)*60 + parseInt(document.getElementById("inputMinutes").value);
-    console.log(full_minutes);
     data_out = {
         'time':{
             'minutes':full_minutes,
