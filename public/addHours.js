@@ -138,6 +138,8 @@ function addHours(){
         if(!ok){
             if(data["code"] == "823"){
                 clearTokenAndReturn();
+            }else if(data["code"] == "561"){
+                alert("Only one record per date is allowed")
             }else{
                 alert(JSON.stringify(data));
             }
