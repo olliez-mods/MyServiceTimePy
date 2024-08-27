@@ -172,8 +172,11 @@ def api_add_time():
     existing_time_on_date = SQL_F.get_time_by_date(user_id, date)
     if(existing_time_on_date != None): return jsonify({"error":"Given date already has a time record", "code":"561"}), 400
 
-    # All data we have is valid, token is valid, date is empty... time to add it to our database
-    result = SQL_F.add_time_to_user(user_id, minutes, placements, date, note)
+    try:
+        # All data we have is valid, token is valid, date is empty... time to add it to our database
+        result = SQL_F.add_time_to_user(user_id, minutes, placements, date, note)
+    except OverflowError:
+        return jsonify({"error":"A value was too large to be used", "code":"110"}), 400
 
     # TODO confirm that it was really added
     return jsonify({"success":"Time was inserted into our database"}), 200
