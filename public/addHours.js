@@ -1,4 +1,6 @@
 let token = localStorage.getItem("token");
+let lastTokenCheck = Date.now();
+
 
 document.getElementById("inputDate").valueAsDate = new Date();
 
@@ -229,5 +231,22 @@ if(token){
     confirmConfirmButton.addEventListener("click", function(){
         clearHous();
         confirmBox.style.display = "none";
+    });
+
+    setInterval(() => {
+        CheckToken(); // No rate limiting here, checks every minute
+    }, 120000);
+
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+            const now = Date.now();
+
+            if(now - lastTokenCheck < 10000){
+                return;
+            }
+
+            lastTokenCheck = now
+            CheckToken();
+        }
     });
 }
