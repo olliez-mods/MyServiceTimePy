@@ -99,6 +99,7 @@ def filter_string(string) -> str:
 @app.route('/api/create_account', methods=['POST'])
 def api_create_account():
     email = filter_string(request.json.get('email', None))
+    email = email.lower()
     pass_hash = filter_string(request.json.get('pass_hash', None))
 
     if(not email): return jsonify({"error":"email not provided", "code":"771"}), 400
@@ -116,6 +117,7 @@ def api_create_account():
 @app.route('/api/login', methods=['POST'])
 def api_login():
     email = filter_string(request.json.get('email', None))
+    email = email.lower()
     pass_hash = filter_string(request.json.get('pass_hash', None))
 
     if(not email): return jsonify({"error":"email not provided", "code":"834"}), 400
