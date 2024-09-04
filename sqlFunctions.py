@@ -41,8 +41,12 @@ def setup_db() -> None:
             )
     ''')
 
+    cursor.close()
+    conn.close()
+
 def db_read(query: str, params: Optional[tuple] = None) -> List[sqlite3.Row]:
     conn:sqlite3.Connection = get_db()
+    cursor = None
     try:
         cursor = conn.cursor()
         cursor.execute(query, params)
@@ -52,18 +56,22 @@ def db_read(query: str, params: Optional[tuple] = None) -> List[sqlite3.Row]:
         return result
 
     finally:
-        conn.close()
+        if(cursor): cursor.close()
+        if(conn): conn.close()
+
 
 def db_write(query: str, params: Optional[tuple] = None) -> int:
     with lock:
         conn:sqlite3.Connection = get_db()
+        cursor = None
         try:
             cursor = conn.cursor()
             cursor.execute(query, params)
             conn.commit()
             return cursor.lastrowid
         finally:
-            conn.close()
+            if(cursor): cursor.close()
+            if(conn): conn.close()
 
 def create_user(email:str, pass_hash:str):
     """
