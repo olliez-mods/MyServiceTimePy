@@ -1,4 +1,7 @@
 from flask import Flask, send_from_directory, request, jsonify
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
 import time
 import jwt
 import jwt.utils
@@ -20,6 +23,8 @@ use_redirection_server = ini_file.get("use_redirection_server", False)
 redirection_listen = ini_file.get("redirection_listen_port", 80)
 redirection_send = ini_file.get("redirection_send_port", 443)
 redirect_prefix = ini_file.get("redirect_prefix", "https://")
+rate_limit_per_hour = ini_file.get("rate_limit_per_hour", 120)
+rate_limit_per_day = ini_file.get("rate_limit_per_day", 250)
 # ======================================================================
 
 # Redirection server ===================================================
@@ -52,6 +57,12 @@ SECRET_KEY = s_key
 
 # Not used in the program
 tokens = []
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=[f"{rate_limit_per_day} per day", f"{rate_limit_per_hour} per hour"]
+)
 
 def generate_token(user_id:int) -> str:
     exp_time = int(time.time()) + token_exp_time       # 1 hour

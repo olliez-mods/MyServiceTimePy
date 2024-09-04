@@ -17,6 +17,10 @@ key_file_path=./key.pem
 # Server port (http is 80, https is 443)
 port=80
 
+# Rate limits applied to each IP address
+rate_limit_per_hour=120
+rate_limit_per_day=250
+
 # Redirects connecting clients to a different port and/or change prefix
 # Default: listen on 80 and redirects to port 443 (https://)
 use_redirection_server=false
