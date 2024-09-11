@@ -60,8 +60,8 @@ tokens = []
 
 limiter = Limiter(
     get_remote_address,
-    app=app,
-    default_limits=[f"{rate_limit_per_day} per day", f"{rate_limit_per_hour} per hour"]
+    app=app
+    #default_limits=[f"{rate_limit_per_day} per day", f"{rate_limit_per_hour} per hour"]
 )
 
 def generate_token(user_id:int) -> str:
