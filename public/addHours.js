@@ -150,7 +150,7 @@ function getHours() {
         ));
 
         const reverseMonth = true;
-        const reverseDays = false;
+        const reverseDays = true;
 
 
         timeRecords.sort((a, b) => {
