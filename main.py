@@ -6,6 +6,7 @@ import time
 import jwt
 import jwt.utils
 import sqlFunctions as SQL_F
+from sqlFunctions import User, TimeEntry
 import iniParser as INI
 from datetime import datetime
 import re
@@ -116,11 +117,11 @@ def api_create_account():
     if(not email): return jsonify({"error":"email not provided", "code":"771"}), 400
     if(not pass_hash): return jsonify({"error":"pass_hash not provided", "code":"989"}), 400
 
-    existing_account = SQL_F.get_user_with_email(email)
-
-    if(existing_account != None): return jsonify({"error":"An existing account exists with that email", "msg":"Email taken", "code":"989"}), 400
     if(len(email) <= 4): return jsonify({"error":"Email is too short, must be at least length 5", "msg":"Email too short", "code":"166"}), 400
     if(len(pass_hash) <= 5): return jsonify({"error":"Password hash is too short. It should NEVER be shorter then 6 chars","code":"653"}), 400
+
+    existing_account = SQL_F.get_user_with_email(email)
+    if(existing_account != None): return jsonify({"error":"An existing account exists with that email", "msg":"Email taken", "code":"989"}), 400
 
     SQL_F.create_user(email, pass_hash)
     return jsonify({"success":"account was created successfully"}), 200
@@ -138,13 +139,10 @@ def api_login():
 
     if(not user): return jsonify({"error":"No user found with the email provided", "msg":"Email not found", "code":"186"}), 400
 
-    user_pass_hash = user['pass_hash']
-    user_id = user['id']
-
-    if(pass_hash != user_pass_hash): return jsonify({"error":"The hash provided does not match our systems","msg":"Password incorrect","code":"773"}), 400
+    if(pass_hash != user.pass_hash): return jsonify({"error":"The hash provided does not match our systems","msg":"Password incorrect","code":"773"}), 400
 
     # At this point, the email and password are correct
-    token = generate_token(user_id)
+    token = generate_token(user.id)
     print(f"User logged in '{email}'")
     return jsonify({"token":token}), 200
 
@@ -172,15 +170,14 @@ def api_get_time():
     user_time_rows = SQL_F.get_time(user_id)
     time_formatted = []
 
-    if(user_time_rows):
-        for r in user_time_rows:
-            row = dict(r)
-            time_formatted.append({
-                "minutes":row.get('minutes', 0),
-                "placements":row.get('placements',0),
-                "date":row.get('date','0000-00-00'),
-                "note":row.get('note','')
-            })
+    for time in user_time_rows:
+        time_formatted.append({
+            "minutes":time.minutes,
+            "placements":time.placements,
+            "date":time.date,
+            "note":time.note,
+            "is_credit":time.is_credit
+        })
     
     return jsonify({"time":time_formatted}), 200
 
@@ -212,10 +209,11 @@ def api_add_time():
         placements = int(time_slot.get('placements', 0))
         date = filter_string(time_slot.get('date', None))
         note = str(filter_string(time_slot.get('note', '')))
+        is_credit = bool(time_slot.get('is_credit', False))
     except (ValueError, TypeError) as e:
         print(e)
         return jsonify({"error":"Exception caught handling data sent", "exception":str(e), "code":"139"}), 400 
-    
+
     # Confirm date is provided and is in correct format
     if(not date): return jsonify({"error":"Date was not provided in time object", "code":"992"}), 400
     date = str(date)
@@ -223,11 +221,10 @@ def api_add_time():
 
     # Make sure there are no other records for today
     existing_time_on_date = SQL_F.get_time_by_date(user_id, date)
-    if(existing_time_on_date != None): return jsonify({"error":"Given date already has a time record", "code":"561"}), 400
-
+    if(len(existing_time_on_date) > 0): return jsonify({"error":"Given date already has a time record", "code":"561"}), 400
     try:
         # All data we have is valid, token is valid, date is empty... time to add it to our database
-        result = SQL_F.add_time_to_user(user_id, minutes, placements, date, note)
+        SQL_F.add_time_to_user(user_id, minutes, placements, date, note, is_credit)
     except OverflowError:
         return jsonify({"error":"A value was too large to be used", "code":"110"}), 400
 
@@ -251,10 +248,10 @@ def api_remove_time():
 
     current_times = SQL_F.get_time_by_date(user_id, date)
 
-    if(current_times == None): return jsonify({"error":"No time is recorded on the given date", "code":"431"}), 400
+    if(not current_times): return jsonify({"error":"No time is recorded on the given date", "code":"431"}), 400
 
-    result = SQL_F.remove_time_by_date(user_id, date)
-    return jsonify({"success":"Removed all records for the givin date"}), 200
+    SQL_F.remove_time_by_date(user_id, date)
+    return jsonify({"success":"Removed all records for the given date"}), 200
 
 @app.route('/api/clear_time', methods=['POST'])
 def api_clear_time():

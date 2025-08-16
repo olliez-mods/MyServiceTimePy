@@ -21,10 +21,11 @@ body{
   margin-right:40%;
 }
 
-h1 {
+.totals {
   font-family:arial;
   text-align: center;
   font-weight: 10;
+  margin-bottom: 0;
 }
 
 textarea {
@@ -213,4 +214,8 @@ body {
   position: fixed;
   bottom: 0;
   margin-bottom: 0;
+}
+
+.button.active {
+  background-color: #4edd5f;
 }

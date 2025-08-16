@@ -33,7 +33,7 @@ button.addEventListener("click", async function(){
         return;
     }
     if(password1.length <= 6){
-        set_info_text("Password length must be more then 6", "#f5020b");
+        set_info_text("Password length must be more than 6", "#f5020b");
         return;
     }
 
