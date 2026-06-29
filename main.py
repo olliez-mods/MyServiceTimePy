@@ -56,8 +56,19 @@ app = Flask(__name__)
 
 SECRET_KEY = s_key
 
-# Not used in the program
-tokens = []
+# Token cleanup to prevent memory leak
+tokens = {}
+token_lock = __import__('threading').Lock()
+
+def cleanup_expired_tokens():
+    """Remove expired tokens from memory"""
+    with token_lock:
+        current_time = int(time.time())
+        expired = [token for token, exp_time in tokens.items() if exp_time < current_time]
+        for token in expired:
+            del tokens[token]
+        if expired:
+            print(f"Cleaned up {len(expired)} expired tokens")
 
 limiter = Limiter(
     get_remote_address,
@@ -66,17 +77,27 @@ limiter = Limiter(
 )
 
 def generate_token(user_id:int) -> str:
+    cleanup_expired_tokens()  # Clean up before adding new token
     exp_time = int(time.time()) + token_exp_time       # 1 hour
     token = jwt.encode({'user_id': user_id, 'exp': exp_time}, SECRET_KEY, algorithm='HS256')
-    tokens.append(token)
+    with token_lock:
+        tokens[token] = exp_time
     return token
 
 def is_token_valid(token:str) -> bool:
     try:
-        jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        decoded = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        # Clean up the token from memory if expired
+        exp_time = decoded.get('exp', 0)
+        with token_lock:
+            if token in tokens and tokens[token] < int(time.time()):
+                del tokens[token]
         return True
     except jwt.ExpiredSignatureError:
-        # Token has expired
+        # Token has expired - remove from memory
+        with token_lock:
+            if token in tokens:
+                del tokens[token]
         return False
     except jwt.InvalidTokenError:
         # Token is invalid

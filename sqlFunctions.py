@@ -44,7 +44,7 @@ def set_db(name:str) -> None:
     DATABASE = name
 
 def get_db() -> sqlite3.Connection:
-    conn = sqlite3.connect(DATABASE)
+    conn = sqlite3.connect(DATABASE, timeout=30.0)  # Increase timeout to 30 seconds
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -80,19 +80,23 @@ def setup_db() -> None:
     conn.close()
 
 def db_read(query: str, params: Optional[tuple] = None) -> List[sqlite3.Row]:
-    conn:sqlite3.Connection = get_db()
-    cursor = None
-    try:
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-        result = cursor.fetchall()
+    with lock:  # Add thread safety to reads (previously missing)
+        conn:sqlite3.Connection = get_db()
+        cursor = None
+        try:
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            result = cursor.fetchall()
 
-        if(not result): return None
-        return result
+            if(not result): return None
+            return result
 
-    finally:
-        if(cursor): cursor.close()
-        if(conn): conn.close()
+        except sqlite3.OperationalError as e:
+            print(f"Database read error: {e}")
+            return None
+        finally:
+            if(cursor): cursor.close()
+            if(conn): conn.close()
 
 
 def db_write(query: str, params: Optional[tuple] = None) -> int:
