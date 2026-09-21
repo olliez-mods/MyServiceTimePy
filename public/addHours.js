@@ -76,6 +76,34 @@ function minutes_to_hour_minute(minutes){
     return([h,m]);
 }
 
+// If any credit is counted in a month, nothing above 55h counts that month.
+// Credit is optional though, so a month can always fall back to claiming ministry alone.
+const MAX_MONTHLY_MINUTES_WITH_CREDIT = 3300;
+
+// The service year runs 1 September - 31 August, and is named after the year it ends in.
+// September 2025 through August 2026 is the "2026 service year".
+function get_service_year(date){
+    return (date.getMonth() >= 8) ? date.getFullYear() + 1 : date.getFullYear();
+}
+
+function get_service_year_range(serviceYear){
+    return `Sep ${serviceYear - 1} - Aug ${serviceYear}`;
+}
+
+// Works out what a month can claim toward the yearly 600.
+// Counting credit caps the month at 55h, so when ministry alone already beats that
+// we simply don't count the credit (it's still logged, it just doesn't apply).
+function get_month_countable(ministryMinutes, creditMinutes){
+    let withCredit = Math.min(ministryMinutes + creditMinutes, MAX_MONTHLY_MINUTES_WITH_CREDIT);
+    let creditCounts = (creditMinutes > 0) && (withCredit > ministryMinutes);
+    let countable = creditCounts ? withCredit : ministryMinutes;
+    return {
+        // Reportable time is whole hours, any spare minutes are lost
+        reportable: align_minutes_to_multiple(countable, 60),
+        creditCounts: creditCounts
+    };
+}
+
 // "2h" when it lands on the hour, "2h15" when it doesn't
 function format_hour_minute(minutes){
     let [h, m] = minutes_to_hour_minute(minutes);
@@ -89,11 +117,11 @@ function align_minutes_to_multiple(minutes, multiple=60) {
     return minutes - remainder;
 }
 
-function get_year_html_str(totalMinistryMinutes, totalCreditMinutes, totalMinutesCapped, totalPlacements){
+function get_year_html_str(serviceYear, totalMinistryMinutes, totalCreditMinutes, totalMinutesCapped, totalPlacements){
     let [h, m] = minutes_to_hour_minute(totalMinutesCapped); // total (capped)
-    let [hM, mM] = minutes_to_hour_minute(totalMinistryMinutes); // total ministry
-    let [hCr, mCr] = minutes_to_hour_minute(totalCreditMinutes); // total credit
 
+    let headerHtml = `<h3 class="totals" style="margin-bottom: 0;">${serviceYear} Service Year</h3>`
+                   + `<h4 class="totals" style="margin-top: 0; font-weight: normal;">${get_service_year_range(serviceYear)}</h4>`;
     let totalsHtml = `<h1 class="totals">Total: ${h}h<br>Placements: ${totalPlacements}</h1>`;
 
     let detailsArr = [];
@@ -113,16 +141,40 @@ function get_year_html_str(totalMinistryMinutes, totalCreditMinutes, totalMinute
 
     return `
         <div>
+        ${headerHtml}
         ${totalsHtml}
         ${detailsStr}
         </div>
     `;
 }
 
-function get_month_html_str(month_string, minutes, minutesCapped, ministryMinutes, creditMinutes) {
-    let [h, m] = minutes_to_hour_minute(minutes);
-    let [hC, mC] = minutes_to_hour_minute(minutesCapped);
-    let cappedStr = (minutesCapped !== minutes) ? ` (${hC} capped)` : ""; // Don't show minutes (there's shouldn't be any)
+// Heading for each service year in the list below the summary
+function get_service_year_html_str(serviceYear, reportableMinutes, ministryMinutes, creditMinutes, placements){
+    let [h, m] = minutes_to_hour_minute(reportableMinutes);
+
+    let detailsStr = "";
+    if(creditMinutes > 0){
+        detailsStr = `<h4 class="totals" style="margin: 0;">[ Ministry ${format_hour_minute(ministryMinutes)} ]   [ Credit ${format_hour_minute(creditMinutes)} ]</h4>`;
+    }
+
+    return `<br></br><div class="serviceYearBox">`
+         + `<h1 style="margin: 0; text-align: center;">${serviceYear} Service Year</h1>`
+         + `<h4 class="totals" style="margin: 0; font-weight: normal;">${get_service_year_range(serviceYear)}</h4>`
+         + `<h3 class="totals" style="margin: 0;">Total: ${h}h &nbsp;&nbsp; Placements: ${placements}</h3>`
+         + `${detailsStr}</div>`;
+}
+
+function get_month_html_str(month_string, reportableMinutes, ministryMinutes, creditMinutes, creditCounts) {
+    let [h, m] = minutes_to_hour_minute(reportableMinutes);
+    let loggedMinutes = ministryMinutes + creditMinutes;
+
+    // Say why the claimable time is lower than what was logged
+    let cappedStr = "";
+    if(creditCounts && loggedMinutes > MAX_MONTHLY_MINUTES_WITH_CREDIT){
+        cappedStr = ` (capped, ${format_hour_minute(loggedMinutes)} logged)`;
+    }else if(creditMinutes > 0 && !creditCounts){
+        cappedStr = ` (credit not counted)`;
+    }
 
     // Only break the month down when some of it actually came from credit
     let detailsStr = "";
@@ -174,18 +226,15 @@ function getHours() {
             else return a.date - b.date;
         });
 
-        let totalMinutesMinistry = 0;
-        let totalMinutesCredit = 0;
-        let totalMinutesCapped = 0;
-        let totalPlacements = 0;
-
-        // Split time records into months
+        // Split time records into months. Keyed on year AND month, otherwise the same
+        // month from two different years would be merged into one.
         let months = [];
-        let temp_currentMonth = -1; // No current month
+        let temp_currentMonth = null; // No current month
         let temp_month = [];
         timeRecords.forEach((timeRecord) => {
-            if(timeRecord.date.getMonth() !== temp_currentMonth){
-                temp_currentMonth = timeRecord.date.getMonth();
+            let monthKey = timeRecord.date.getFullYear() * 12 + timeRecord.date.getMonth();
+            if(monthKey !== temp_currentMonth){
+                temp_currentMonth = monthKey;
                 if(temp_month.length > 0) months.push(temp_month);
                 temp_month = [];
             }
@@ -198,44 +247,79 @@ function getHours() {
             else return a[0].date - b[0].date;
         });
 
-        let HTML = "";
-
-        const MAX_MONTHLY_MINUTES_WITH_CREDIT = 3300;
-
-        // Calculate and generate HTML for each month
+        // Gather the months into service years (1 September - 31 August)
+        let serviceYears = [];
         months.forEach((month) => {
-            let monthHTML = "";
-            let monthMinistry = 0;
-            let monthCredit = 0;
-            let monthPlacements = 0;
-            let monthName = month[0].date.toLocaleString('default', { month: 'long' });
-            let isCreditMonth = false;
-
-            month.forEach((record) => {
-                if(record.is_credit) isCreditMonth = true;
-                
-                // Add to total month minutes
-                if(record.is_credit) monthCredit += record.minutes_raw;
-                else monthMinistry += record.minutes_raw;
-                monthPlacements += record.placements;
-
-                monthHTML += get_time_html_str(record);
-            });
-
-            let monthMinutes = align_minutes_to_multiple(monthMinistry + monthCredit, 60); // Months align to hours no minutes
-            let monthMinutesCapped = Math.min(monthMinutes, (isCreditMonth ? MAX_MONTHLY_MINUTES_WITH_CREDIT : Infinity));
-            HTML += get_month_html_str(monthName, monthMinutes, monthMinutesCapped, monthMinistry, monthCredit) + monthHTML;
-
-            // Some totals aren't limited by credit caps or hour rounding
-            totalMinutesMinistry += monthMinistry;
-            totalMinutesCredit += monthCredit;
-            totalMinutesCapped += monthMinutesCapped;
-
-            totalPlacements += monthPlacements;
+            let year = get_service_year(month[0].date);
+            let bucket = serviceYears.find(s => s.year === year);
+            if(!bucket){
+                bucket = {year: year, months: []};
+                serviceYears.push(bucket);
+            }
+            bucket.months.push(month);
         });
 
+        serviceYears.sort((a, b) => {
+            if(reverseMonth) return b.year - a.year;
+            else return a.year - b.year;
+        });
+
+        let HTML = "";
+
+        let currentYear = get_service_year(new Date());
+
+        // Calculate and generate HTML for each service year, then each month inside it
+        serviceYears.forEach((serviceYear, index) => {
+            let yearMinistry = 0;
+            let yearCredit = 0;
+            let yearCapped = 0;
+            let yearPlacements = 0;
+            let monthsHTML = "";
+
+            serviceYear.months.forEach((month) => {
+                let monthHTML = "";
+                let monthMinistry = 0;
+                let monthCredit = 0;
+                let monthPlacements = 0;
+                let monthName = month[0].date.toLocaleString('default', { month: 'long' });
+
+                month.forEach((record) => {
+                    // Add to total month minutes
+                    if(record.is_credit) monthCredit += record.minutes_raw;
+                    else monthMinistry += record.minutes_raw;
+                    monthPlacements += record.placements;
+
+                    monthHTML += get_time_html_str(record);
+                });
+
+                let countable = get_month_countable(monthMinistry, monthCredit);
+                monthsHTML += get_month_html_str(monthName, countable.reportable, monthMinistry, monthCredit, countable.creditCounts) + monthHTML;
+
+                // Some totals aren't limited by credit caps or hour rounding
+                yearMinistry += monthMinistry;
+                yearCredit += monthCredit;
+                yearCapped += countable.reportable; // The reportable figure, so floored and capped
+                yearPlacements += monthPlacements;
+            });
+
+            serviceYear.ministry = yearMinistry;
+            serviceYear.credit = yearCredit;
+            serviceYear.capped = yearCapped;
+            serviceYear.placements = yearPlacements;
+
+            // The summary up top is already this year's heading, so don't repeat it
+            let needsHeader = !(index === 0 && serviceYear.year === currentYear);
+            if(needsHeader) HTML += get_service_year_html_str(serviceYear.year, yearCapped, yearMinistry, yearCredit, yearPlacements);
+            HTML += monthsHTML;
+        });
+
+        // The summary up top always shows the service year we're currently in, even
+        // when nothing has been logged in it yet
+        let current = serviceYears.find(s => s.year === currentYear)
+                      || {year: currentYear, ministry: 0, credit: 0, capped: 0, placements: 0};
+
         document.getElementById("time").innerHTML = HTML;
-        document.getElementById("totalTime").innerHTML = get_year_html_str(totalMinutesMinistry, totalMinutesCredit, totalMinutesCapped, totalPlacements);
+        document.getElementById("totalTime").innerHTML = get_year_html_str(current.year, current.ministry, current.credit, current.capped, current.placements);
     });
 }
 
