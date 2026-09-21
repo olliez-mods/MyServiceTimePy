@@ -76,6 +76,12 @@ function minutes_to_hour_minute(minutes){
     return([h,m]);
 }
 
+// "2h" when it lands on the hour, "2h15" when it doesn't
+function format_hour_minute(minutes){
+    let [h, m] = minutes_to_hour_minute(minutes);
+    return (m === 0) ? `${h}h` : `${h}h${String(m).padStart(2, '0')}`;
+}
+
 // Align minutes to the nearest multiple, default is an hour
 function align_minutes_to_multiple(minutes, multiple=60) {
     if (multiple <= 0) return minutes;
@@ -92,8 +98,8 @@ function get_year_html_str(totalMinistryMinutes, totalCreditMinutes, totalMinute
 
     let detailsArr = [];
     if (totalCreditMinutes > 0) { // Show details if we have at least 1 minute of credit
-        detailsArr.push(`[ Ministry ${hM}h ]`);
-        detailsArr.push(`[ Credit ${hCr}h ]`);
+        detailsArr.push(`[ Ministry ${format_hour_minute(totalMinistryMinutes)} ]`);
+        detailsArr.push(`[ Credit ${format_hour_minute(totalCreditMinutes)} ]`);
     }
 
     let detailsStr = "";
@@ -113,11 +119,19 @@ function get_year_html_str(totalMinistryMinutes, totalCreditMinutes, totalMinute
     `;
 }
 
-function get_month_html_str(month_string, minutes, minutesCapped) {
+function get_month_html_str(month_string, minutes, minutesCapped, ministryMinutes, creditMinutes) {
     let [h, m] = minutes_to_hour_minute(minutes);
     let [hC, mC] = minutes_to_hour_minute(minutesCapped);
     let cappedStr = (minutesCapped !== minutes) ? ` (${hC} capped)` : ""; // Don't show minutes (there's shouldn't be any)
-    return`<br></br><h2 style="margin-bottom: 0;">${month_string}</h2><h3 style="margin-top: 0; margin-bottom: 10px;">Time: ${h}h ${cappedStr}</h3>`;
+
+    // Only break the month down when some of it actually came from credit
+    let detailsStr = "";
+    if(creditMinutes > 0){
+        detailsStr = `<h4 class="totals" style="margin-top: 0; margin-bottom: 10px;">[ Ministry ${format_hour_minute(ministryMinutes)} ]   [ Credit ${format_hour_minute(creditMinutes)} ]</h4>`;
+    }
+
+    let timeMarginBottom = (creditMinutes > 0) ? "0" : "10px";
+    return`<br></br><h2 style="margin-bottom: 0;">${month_string}</h2><h3 style="margin-top: 0; margin-bottom: ${timeMarginBottom};">Time: ${h}h ${cappedStr}</h3>${detailsStr}`;
 }
 
 function get_time_html_str(TimeRecord) {
@@ -210,7 +224,7 @@ function getHours() {
 
             let monthMinutes = align_minutes_to_multiple(monthMinistry + monthCredit, 60); // Months align to hours no minutes
             let monthMinutesCapped = Math.min(monthMinutes, (isCreditMonth ? MAX_MONTHLY_MINUTES_WITH_CREDIT : Infinity));
-            HTML += get_month_html_str(monthName, monthMinutes, monthMinutesCapped) + monthHTML;
+            HTML += get_month_html_str(monthName, monthMinutes, monthMinutesCapped, monthMinistry, monthCredit) + monthHTML;
 
             // Some totals aren't limited by credit caps or hour rounding
             totalMinutesMinistry += monthMinistry;
