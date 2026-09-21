@@ -7,25 +7,26 @@ import jwt
 import jwt.utils
 import sqlFunctions as SQL_F
 from sqlFunctions import User, TimeEntry
-import iniParser as INI
+from quick_ini import QuickIni
 from datetime import datetime
 import re
 
 # INI file =============================================================
-ini_file = INI.load_data_from_file("config.ini")
-s_key = ini_file.get("secrete_key", "myservicetime-SECRETE")
-token_exp_time = ini_file.get("token_exp_time", 3600)
-db_path = ini_file.get("db_path", "myservicetime.db")
-cert_path = ini_file.get("cert_file_path", "./cert.pem")
-key_path = ini_file.get("key_file_path", "./key.pem")
-server_port = ini_file.get("port", 80)
-run_as_secure = ini_file.get("run_as_secure", False)
-use_redirection_server = ini_file.get("use_redirection_server", False)
-redirection_listen = ini_file.get("redirection_listen_port", 80)
-redirection_send = ini_file.get("redirection_send_port", 443)
-redirect_prefix = ini_file.get("redirect_prefix", "https://")
-rate_limit_per_hour = ini_file.get("rate_limit_per_hour", 120)
-rate_limit_per_day = ini_file.get("rate_limit_per_day", 250)
+if(not QuickIni.load_file("config.ini")):
+    print(f"Could not load config: {QuickIni.get_last_error()}\nFalling back to default settings")
+s_key = QuickIni.get_value("secrete_key", "myservicetime-SECRETE")
+token_exp_time = QuickIni.get_value("token_exp_time", 3600, int)
+db_path = QuickIni.get_value("db_path", "myservicetime.db")
+cert_path = QuickIni.get_value("cert_file_path", "./cert.pem")
+key_path = QuickIni.get_value("key_file_path", "./key.pem")
+server_port = QuickIni.get_value("port", 80, int)
+run_as_secure = QuickIni.get_value("run_as_secure", False, bool)
+use_redirection_server = QuickIni.get_value("use_redirection_server", False, bool)
+redirection_listen = QuickIni.get_value("redirection_listen_port", 80, int)
+redirection_send = QuickIni.get_value("redirection_send_port", 443, int)
+redirect_prefix = QuickIni.get_value("redirect_prefix", "https://")
+rate_limit_per_hour = QuickIni.get_value("rate_limit_per_hour", 120, int)
+rate_limit_per_day = QuickIni.get_value("rate_limit_per_day", 250, int)
 # ======================================================================
 
 # Redirection server ===================================================
