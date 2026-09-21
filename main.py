@@ -194,6 +194,7 @@ def api_get_time():
 
     for time in user_time_rows:
         time_formatted.append({
+            "id":time.id,
             "minutes":time.minutes,
             "placements":time.placements,
             "date":time.date,
@@ -241,11 +242,8 @@ def api_add_time():
     date = str(date)
     if(not is_date_valid(date)): return jsonify({"error":"Date must be provided in format YYYY-MM-DD", "code":"435"}), 400
 
-    # Make sure there are no other records for today
-    existing_time_on_date = SQL_F.get_time_by_date(user_id, date)
-    if(len(existing_time_on_date) > 0): return jsonify({"error":"Given date already has a time record", "code":"561"}), 400
     try:
-        # All data we have is valid, token is valid, date is empty... time to add it to our database
+        # All data we have is valid, token is valid... time to add it to our database
         SQL_F.add_time_to_user(user_id, minutes, placements, date, note, is_credit)
     except OverflowError:
         return jsonify({"error":"A value was too large to be used", "code":"110"}), 400
@@ -262,18 +260,21 @@ def api_remove_time():
 
     user_id = get_id_from_token(token)
 
-    date = request.json.get('date', None)
-    # Confirm date is provided and is in correct format
-    if(not date): return jsonify({"error":"Date was not provided", "code":"543"}), 400
-    date = str(date)
-    if(not is_date_valid(date)): return jsonify({"error":"Date must be provided in format YYYY-MM-DD", "code":"712"}), 400
+    time_id = request.json.get('id', None)
 
-    current_times = SQL_F.get_time_by_date(user_id, date)
+    if(time_id is None): return jsonify({"error":"Id was not provided", "code":"543"}), 400
+    try:
+        time_id = int(time_id)
+    except (ValueError, TypeError):
+        return jsonify({"error":"Id must be a number", "code":"712"}), 400
 
-    if(not current_times): return jsonify({"error":"No time is recorded on the given date", "code":"431"}), 400
+    # Only look at entries owned by the user this token belongs to
+    existing_time = SQL_F.get_time_by_id(time_id, user_id)
 
-    SQL_F.remove_time_by_date(user_id, date)
-    return jsonify({"success":"Removed all records for the given date"}), 200
+    if(not existing_time): return jsonify({"error":"No time is recorded with the given id", "code":"431"}), 400
+
+    SQL_F.remove_time_by_id(time_id, user_id)
+    return jsonify({"success":"Removed the given time record"}), 200
 
 @app.route('/api/clear_time', methods=['POST'])
 def api_clear_time():

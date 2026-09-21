@@ -20,7 +20,8 @@ class User:
         )
 
 class TimeEntry:
-    def __init__(self, user_id:int, minutes:int, placements:int, date:str, note:str, is_credit:bool=False):
+    def __init__(self, id:int, user_id:int, minutes:int, placements:int, date:str, note:str, is_credit:bool=False):
+        self.id = id
         self.user_id = user_id
         self.minutes = minutes
         self.placements = placements
@@ -31,6 +32,7 @@ class TimeEntry:
     @staticmethod
     def from_row(row: sqlite3.Row) -> 'TimeEntry':
         return TimeEntry(
+            id=row['id'],
             user_id=row['user_id'],
             minutes=row['minutes'],
             placements=row['placements'],
@@ -214,19 +216,30 @@ def get_removed_time(user_id:int) -> List[TimeEntry]:
     if(r): return [TimeEntry.from_row(row) for row in r]
     return []
 
-def perm_delete_time_by_id(id:int):
+def perm_delete_time_by_id(id:int, user_id:int):
     """
     PERMENENTLY remove a time slot based on its id
+    Note: scoped to the owning user, so one user can't delete anothers time
     """
-    q = "DELETE FROM time WHERE id = ?"
-    return db_write(q, (id,))
+    q = "DELETE FROM time WHERE id = ? AND user_id = ?"
+    return db_write(q, (id, user_id))
 
-def remove_time_by_id(id:int):
+def remove_time_by_id(id:int, user_id:int):
     """
     Remove a time slot based on its id
+    Note: scoped to the owning user, so one user can't delete anothers time
     """
-    q = "UPDATE time SET removed = 1 WHERE id = ?"
-    return db_write(q, (id,))
+    q = "UPDATE time SET removed = 1 WHERE id = ? AND user_id = ?"
+    return db_write(q, (id, user_id))
+
+def get_time_by_id(id:int, user_id:int) -> TimeEntry|None:
+    """
+    Returns a single active time slot owned by the given user
+    """
+    q = 'SELECT * FROM time WHERE id = ? AND user_id = ? AND removed = 0 LIMIT 1'
+    r = db_read(q, (id, user_id))
+    if(r): return TimeEntry.from_row(r[0])
+    return None
 
 def perm_delete_user_time_by_date(user_id:int, date:str):
     """

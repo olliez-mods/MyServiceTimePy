@@ -5,7 +5,8 @@ let lastTokenCheck = Date.now();
 document.getElementById("inputDate").valueAsDate = new Date();
 
 class TimeRecord {
-    constructor(date, minutes, placements, note, is_credit) {
+    constructor(id, date, minutes, placements, note, is_credit) {
+        this.id = id;
         this.date_raw = date;
         const [year, month, day] = date.split('-').map(Number);
         this.date = new Date(year, month - 1, day);
@@ -54,8 +55,8 @@ function CheckToken(){
     });
 }
 
-function removeDay(date_str){
-    data_out = {'date':date_str};
+function removeEntry(id){
+    data_out = {'id':id};
     sendPOST(data_out, "remove_time", token).then(({status, ok, data}) => {
         if(!ok){
             if(data["code"] == "099"){
@@ -125,7 +126,7 @@ function get_time_html_str(TimeRecord) {
     let creditStr = TimeRecord.is_credit ? " (Credit)" : "";
     return `
     <div class="dateBox">
-    <img src="close.png" onClick="removeDay('${TimeRecord.date_raw}')" class="xButtonImg">
+    <img src="close.png" onClick="removeEntry(${TimeRecord.id})" class="xButtonImg">
             <H2 style="margin-top:0px; text-align: center;">${dateStr}${creditStr}</H2>
             <H3 class="dateInfo">Time: ${TimeRecord.hours}:${TimeRecord.minutes}</H3>
             <H3 class="dateInfo">Placements: ${TimeRecord.placements}</H3>
@@ -142,6 +143,7 @@ function getHours() {
         }
         let time_dicts = data['time'];
         let timeRecords = time_dicts.map(record => new TimeRecord(
+            record.id,
             record.date,
             record.minutes,
             record.placements,
@@ -242,8 +244,6 @@ function addHours(){
         if(!ok){
             if(data["code"] == "823"){
                 clearTokenAndReturn();
-            }else if(data["code"] == "561"){
-                alert("Only one record per date is allowed");
             }else{
                 alert(JSON.stringify(data));
             }
