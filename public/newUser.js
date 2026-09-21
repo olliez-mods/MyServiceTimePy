@@ -1,6 +1,5 @@
 
-imageURL = localStorage.getItem("lastImage");
-document.body.style.backgroundImage = `URL(${imageURL})`;
+set_saved_background();
 
 let account_created_freeze = false;
 
